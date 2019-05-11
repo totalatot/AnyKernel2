@@ -1,0 +1,4 @@
+#Moto X Pro
+on property:ro.product.locale=en-US
+	# Set language & locale to zh-CN
+	setprop persist.sys.locale zh-Hans-CN

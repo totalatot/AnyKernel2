@@ -241,6 +241,54 @@ if [ "$(file_getprop anykernel.sh do.modules)" == 1 ]; then
   $bb mount -o ro,remount -t auto /vendor 2>/dev/null;
 fi;
 
+#begin my modifications
+
+$bb mount -o rw,remount -t auto /system;
+
+#sensors
+ui_print " ";
+ui_print "Fix sensors driver...";
+if [ $? != 0 -o -z "$(ls /tmp/anykernel/patch)" ]; then
+  abort ".so no found. Aborting...";
+fi;
+$bb cp -rLf /tmp/anykernel/patch/sensors.msm8084.so /system/vendor/lib/hw/;
+set_perm_recursive 0 0 0755 0644 /system/vendor/lib/hw;
+
+#lineageactions
+ui_print " ";
+ui_print "Add moto gestures...";
+if [ $? != 0 -o -z "$(ls /tmp/anykernel/patch)" ]; then
+  abort ".so no found. Aborting...";
+fi;
+mkdir -p /system/priv-app/LineageActions;
+$bb cp -rLf /tmp/anykernel/patch/LineageActions.apk /system/priv-app/LineageActions/;
+set_perm_recursive 0 0 0755 0644 /system/priv-app/LineageActions;
+$bb cp -rLf /tmp/anykernel/patch/libjni_LineageActions.so /system/lib/;
+set_perm_recursive 0 0 0755 0644 /system/lib;
+
+#permissive
+ui_print " ";
+ui_print "Set SELinux to permissive...";
+echo "echo 0 > /sys/fs/selinux/enforce" >> /su/su.d/permissive.sh
+echo "setenforce 0" >> /su/su.d/permissive.sh
+set_perm_recursive 0 0 0755 0755 /su/su.d
+
+$bb mount -o ro,remount -t auto /system;
+
+#root
+if [ $? == 0 -o -z "$(ls /tmp/anykernel/magisk)" ]; then
+ui_print " ";
+ui_print "Root with Magisk...";
+mkdir -p /tmp/anykernel/sutemp;
+unzip -o /tmp/anykernel/magisk/magisk.zip META-INF/com/google/android/* -d /tmp/anykernel/sutemp;
+if [ $? != 0 -o -z "$(ls /tmp/anykernel/sutemp/META-INF/com/google/android)" ]; then
+  abort "Unzip Magisk failed. Aborting...";
+fi;
+PATH="/tmp/anykernel/bin:$PATH" $bb ash /tmp/anykernel/sutemp/META-INF/com/google/android/update-binary dummy 1 /tmp/anykernel/magisk/magisk.zip;
+fi;
+
+#end my modifications
+
 debugging;
 
 if [ "$(file_getprop anykernel.sh do.cleanup)" == 1 ]; then
